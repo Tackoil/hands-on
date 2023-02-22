@@ -1,0 +1,43 @@
+<html>
+
+<body>
+    <input type="file" id="file-selector">
+    <button id="playButton" disabled>play</button>
+    <button id="stopButton" disabled>stop</button>
+    <script type="module">
+        import { AudioContextWrapper } from "./src/index.js"
+
+        const fileSelector = document.getElementById('file-selector');
+        const playButton = document.getElementById("playButton");
+        const stopButton = document.getElementById("stopButton");
+
+        const context = new AudioContextWrapper();
+        // input file
+
+        playButton.addEventListener("click", handlePlay);
+        stopButton.addEventListener("click", handleStop);
+
+        fileSelector.addEventListener('change', (event) => {
+            playButton.setAttribute("disabled", "");
+            stopButton.setAttribute("disabled", "");
+            const fileList = event.target.files;
+            context.load(fileList[0]).then(() => {
+                playButton.removeAttribute("disabled");
+            })
+        });
+
+        function handlePlay() {
+            context && context.play();
+            playButton.setAttribute("disabled", "");
+            stopButton.removeAttribute("disabled");
+        }
+
+        function handleStop() {
+            context && context.stop();
+            playButton.removeAttribute("disabled");
+            stopButton.setAttribute("disabled", "");
+        }
+    </script>
+</body>
+
+</html>
