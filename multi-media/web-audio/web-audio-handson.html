@@ -4,6 +4,13 @@
     <input type="file" id="file-selector">
     <button id="playButton" disabled>play</button>
     <button id="stopButton" disabled>stop</button>
+    <select id="methodSelect" name="method">
+        <option value="baseOLA">base OLA</option>
+        <option value="wOLA">weighted OLA</option>
+    </select>
+    <button id="slowerButton" disabled> << </button>
+    <span id="currentRate"> 1.0 </span>
+    <button id="fasterButton" disabled> >> </button>
     <script type="module">
         import { AudioContextWrapper } from "./src/index.js"
 
@@ -11,31 +18,68 @@
         const playButton = document.getElementById("playButton");
         const stopButton = document.getElementById("stopButton");
 
+        const methodSelect = document.getElementById("methodSelect");
+        
+        const currentRateSpan = document.getElementById("currentRate");
+        const slowerButton = document.getElementById("slowerButton");
+        const fasterButton = document.getElementById("fasterButton");
+
         const context = new AudioContextWrapper();
         // input file
 
         playButton.addEventListener("click", handlePlay);
         stopButton.addEventListener("click", handleStop);
 
-        fileSelector.addEventListener('change', (event) => {
-            playButton.setAttribute("disabled", "");
-            stopButton.setAttribute("disabled", "");
-            const fileList = event.target.files;
-            context.load(fileList[0]).then(() => {
+        slowerButton.addEventListener("click", handleSlower);
+        fasterButton.addEventListener("click", handleFaster);
+
+        methodSelect.addEventListener("change", (ev) => {
+            context.setMethod(ev.target.value);
+        })
+
+        context.eventRegist("playBackStateChange", (ev) => {
+            if (ev === "playing") {
+                playButton.setAttribute("disabled", "");
+                stopButton.removeAttribute("disabled");
+                fasterButton.setAttribute("disabled", "");
+                slowerButton.setAttribute("disabled", "");
+            } else if (ev === "stop") {
                 playButton.removeAttribute("disabled");
-            })
+                stopButton.setAttribute("disabled", "");
+                fasterButton.removeAttribute("disabled");
+                slowerButton.removeAttribute("disabled");
+            } else {
+                playButton.setAttribute("disabled", "");
+                stopButton.setAttribute("disabled", "");
+                fasterButton.setAttribute("disabled", "");
+                slowerButton.setAttribute("disabled", ""); 
+            }
+        })
+
+        context.eventRegist("rateChange", (ev) => {
+            currentRateSpan.innerText = ev.toFixed(1);
+        })
+
+
+        fileSelector.addEventListener('change', (event) => {
+            const fileList = event.target.files;
+            context.load(fileList[0]);
         });
 
         function handlePlay() {
             context && context.play();
-            playButton.setAttribute("disabled", "");
-            stopButton.removeAttribute("disabled");
         }
 
         function handleStop() {
             context && context.stop();
-            playButton.removeAttribute("disabled");
-            stopButton.setAttribute("disabled", "");
+        }
+
+        function handleSlower() {
+            context && context.slow();
+        }
+
+        function handleFaster() {
+            context && context.fast();
         }
     </script>
 </body>

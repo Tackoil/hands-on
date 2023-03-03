@@ -1,16 +1,32 @@
+import { baseOLA, wOLA } from "./dsp/ola.js";
+
 export class AudioContextWrapper {
     constructor() {
         this.audioContext = new AudioContext();
         this.decodedBuf = null;
         this.source = null;
-        this.state = 'stop';
+        this.method = "baseOLA";
+        this.eventCenter = {
+            playBackState: [],
+            rate: []
+        };
+        const handler = {
+            set: (target, p, newValue) => {
+                target[p] = newValue;
+                this.eventCenter[p].forEach(fn => fn(newValue));
+                return true;
+            }
+        }
+        this.state = new Proxy({
+            playBackState: "unload",
+            rate: 1
+        }, handler);
     }
 
     _connect(buf) {
         const source = this.audioContext.createBufferSource();
         source.buffer = buf;
         source.connect(this.audioContext.destination);
-        this.decodedBuf = buf;
         this.source = source;
         return source;
     }
@@ -19,8 +35,7 @@ export class AudioContextWrapper {
         return new Promise((resolve, reject) => {
             this.audioContext.decodeAudioData(buf, buffer => {
                 if (buffer) {
-                    const source = this._connect(buffer);
-                    resolve(source);
+                    resolve(buffer);
                 } else {
                     reject("decode error");
                 }
@@ -28,9 +43,21 @@ export class AudioContextWrapper {
         })
     }
 
+    _changeSpeed(buf, rate=1){
+        if (rate === 1) return buf;
+        let method = baseOLA;
+        if (this.method == 'baseOLA') {
+            method = baseOLA;
+        } else if (this.method == 'wOLA') {
+            method = wOLA;
+        }
+        const newBuf = method(buf, this.audioContext, rate);        
+        return newBuf;
+    }
+
     async load(file) {
         if (this.source) {
-            if (this.state !== 'stop') {
+            if (this.state.playBackState == 'playing') {
                 this.source.stop();
             }
             this.source = null;
@@ -43,18 +70,49 @@ export class AudioContextWrapper {
             });
             fileReader.readAsArrayBuffer(file);
         });
-        return await this._decode(buf);
+        const decodedBuf = await this._decode(buf);
+        this.decodedBuf = decodedBuf;
+        const processedBuf = this._changeSpeed(decodedBuf, this.state.rate);
+        this._connect(processedBuf);
+        this.state.playBackState = "stop"
     }
 
     play() {
-        this.state = 'play';
+        this.state.playBackState = 'playing';
         this.source.start()
     }
 
     stop() {
-        this.state = 'stop';
+        this.state.playBackState = 'stop';
         this.source.stop();
-        this._connect(this.decodedBuf);
+        const processedBuf = this._changeSpeed(this.decodedBuf, this.state.rate);
+        this._connect(processedBuf);
+    }
+
+    slow() {
+        this.state.rate -= 0.1;
+        const processedBuf = this._changeSpeed(this.decodedBuf, this.state.rate);
+        this._connect(processedBuf);   
+    }
+
+    fast() {
+        this.state.rate += 0.1;
+        const processedBuf = this._changeSpeed(this.decodedBuf, this.state.rate);
+        this._connect(processedBuf);
+    }
+
+    setMethod(method) {
+        this.method = method;
+        const processedBuf = this._changeSpeed(this.decodedBuf, this.state.rate);
+        this._connect(processedBuf);  
+    }
+
+    eventRegist(event, fn) {
+        const eventTable = {
+            playBackStateChange: "playBackState",
+            rateChange: "rate"
+        }
+        this.eventCenter[eventTable[event]].push(fn);
     }
 }
 
