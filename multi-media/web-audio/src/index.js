@@ -44,6 +44,7 @@ export class AudioContextWrapper {
     }
 
     _changeSpeed(buf, rate=1){
+        const start = Date.now();
         if (rate === 1) return buf;
         let method = baseOLA;
         if (this.method == 'baseOLA') {
@@ -51,7 +52,9 @@ export class AudioContextWrapper {
         } else if (this.method == 'wOLA') {
             method = wOLA;
         }
-        const newBuf = method(buf, this.audioContext, rate);        
+        const newBuf = method(buf, this.audioContext, rate);  
+        const end = Date.now();
+        console.log(`change speed cost ${end-start}ms`);      
         return newBuf;
     }
 
