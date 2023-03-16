@@ -1,0 +1,32 @@
+<html>
+
+<body>
+    <video id="videoContainer" controls></video>
+    <script>
+        const videoEle = document.getElementById('videoContainer');
+
+        const mediaSource = new MediaSource();
+        videoEle.src = URL.createObjectURL(mediaSource);
+        mediaSource.addEventListener('sourceopen', sourceOpen);
+
+        function sourceOpen(ev) {
+            const mediaSource = this;
+            mediaSource.removeEventListener('sourceopen', sourceOpen);
+            const mineCodes = 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"';
+            let sourceBuffer = mediaSource.addSourceBuffer(mineCodes);
+            const videoUrl = "/assets/btr01f.mp4";
+            fetch(videoUrl)
+                .then(response => {
+                    return response.arrayBuffer();
+                })
+                .then(arrayBuffer => {
+                    sourceBuffer.addEventListener('updateend', (ev) => {
+                        mediaSource.endOfStream();
+                        videoEle.play();
+                    });
+                    sourceBuffer.appendBuffer(arrayBuffer); 
+                });
+        }
+    </script>
+</body>
+</html>
