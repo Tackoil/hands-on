@@ -1,18 +1,21 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue';
+import type { HightLight } from './Mp4Explorer.vue';
 
 const props = defineProps<{
     binary: Uint8Array,
     startPoint: number,
+    highlights: HightLight[],
 }>();
 
 const state = reactive({
     avalibleHeight: 10,
-    stringfiedBinaryList: [] as string[][]
+    stringfiedBinaryList: [] as string[][],
+    highlightRanges: [] as [number, number][],
 })
 
-watch(() => [props.binary, props.startPoint], (values) => {
-    const [binary, startPoint] = values as [Uint8Array, number];
+watch(() => props, (values) => {
+    const {binary, startPoint, highlights} = values;
     const stringfiedBinary = Array.from(binary.slice(startPoint, startPoint + state.avalibleHeight * 16))
         .map((i) => i.toString(16).padStart(2, '0'))
     const stringfiedBinaryList = [];
@@ -22,7 +25,12 @@ watch(() => [props.binary, props.startPoint], (values) => {
         start += 16;
     }
     state.stringfiedBinaryList = stringfiedBinaryList;
-})
+    state.highlightRanges = highlights.map(({binaryStartPoint, binaryLength}) => {
+        const start = binaryStartPoint - startPoint;
+        const end = start + binaryLength;
+        return [start, end];
+    })
+}, { deep: true })
 
 const header = Array.from({ length: 16 }, (_, i) => i.toString(16).padStart(2, '0'));
 

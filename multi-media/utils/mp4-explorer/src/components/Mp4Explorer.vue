@@ -3,13 +3,23 @@ import { reactive, watch } from 'vue';
 import BinaryDisplay from './BinaryDisplay.vue';
 import Mp4InfoReader from './Mp4InfoReader.vue';
 
+export type HightLight = {
+    binaryStartPoint: number,
+    binaryLength: number,
+}
+
 const props = defineProps<{
     file: File | null | undefined
 }>();
 
-const state = reactive({
-    boxes: [],
+const state = reactive<{
+    binary: Uint8Array,
+    highlights: HightLight[],
+    startPoint: number
+}>({
     binary: new Uint8Array(200),
+    highlights: [],
+    startPoint: 0
 });
 
 function loadArrayBuffer(arrayBuffer: ArrayBuffer) {
@@ -19,7 +29,7 @@ function loadArrayBuffer(arrayBuffer: ArrayBuffer) {
 
 watch(() => props.file, (value) => {
     if (!value) {
-        state.boxes = [];
+        state.highlights = [];
         state.binary = new Uint8Array(200);
         return;
     }
@@ -28,12 +38,21 @@ watch(() => props.file, (value) => {
     })
 })
 
+function onTreeSelect(binaryStartPoint: number, binaryLength: number) {
+    console.log(binaryStartPoint, binaryLength)
+    state.highlights = [{
+        binaryStartPoint,
+        binaryLength,
+    }];
+    state.startPoint = Math.floor(binaryStartPoint / 16) * 16;
+}
+
 </script>
 
 <template>
     <div class="mp4-explorer-container">
-        <Mp4InfoReader :binary="state.binary" />
-        <BinaryDisplay :binary="state.binary" :start-point="272" />
+        <Mp4InfoReader :binary="state.binary" @select="onTreeSelect" />
+        <BinaryDisplay :binary="state.binary" :start-point="state.startPoint" :highlights="state.highlights" />
     </div>
 </template>
 
