@@ -1,20 +1,23 @@
 import { boxTypeDict, Value } from "./mp4BoxesDefine";
 import type { BoxTypeDict } from "./mp4BoxesDefine"
 
-type PairItem = {
+export type PairItem = {
     key: string;
-    value: (string | number | PairItem[] | BoxItem)[] | string | number | PairItem[];
+    value: string | number | PairItem[] | BoxItem[];
     binaryStartPoint: number;
     binaryLength: number;
 }
 
-type BoxItem = {
+export type BoxItem = {
     type: string;
     binaryStartPoint: number;
     binaryLength: number;
     contents?: (PairItem | BoxItem)[];
 }
 
+export function isBoxItem(item: PairItem | BoxItem | string | number): item is BoxItem {
+    return (item as BoxItem).type !== undefined;
+}
 
 
 function byte2Number(binary: Uint8Array, startPoint: number, length: number): number {
@@ -112,17 +115,23 @@ function structParser(binary: Uint8Array, startPoint: number, length: number | n
                 loopCount = loopKey.value;
             }
         }
-        const valueList = [];
+        const valueList: PairItem[] = [];
         if (loopCount === Infinity && length === null) {
             throw new Error(`length should not be null when loop in inf at ${startPoint}`);
         }
         let loopOffset = 0;
+        let loopLength = 1;
         while (loopCount-- && (!length || offset + loopOffset < length)) {
             const binaryStartPointInLoop = binaryStartPoint + loopOffset;
             let valueLength = 0;
             if (_valueType === 'struct') {
                 const {pairs, binaryLength} = structParser(binary, binaryStartPointInLoop, null, currentPairs, structValue.struct);
-                valueList.push(pairs);
+                valueList.push({
+                    key: loopLength.toString(),
+                    value: pairs,
+                    binaryStartPoint: binaryStartPointInLoop,
+                    binaryLength: binaryLength
+                });
                 valueLength = binaryLength;
             } else {
                 // size
@@ -157,15 +166,22 @@ function structParser(binary: Uint8Array, startPoint: number, length: number | n
                 }
                 const valueBinary = binary.slice(binaryStartPointInLoop, binaryStartPointInLoop + valueLength);
                 const value = getValue(_valueType, valueBinary, structValue.mask);
-                valueList.push(value);
+                valueList.push({
+                    key: loopLength.toString(),
+                    value: value,
+                    binaryStartPoint: binaryStartPointInLoop,
+                    binaryLength: valueLength
+                });
             }
             loopOffset += valueLength;
+            loopLength++;
         }
         offset += loopOffset;
         if (valueList.length === 1) {
+            const value = valueList[0].value;
             currentPairs.push({
                 key: key,
-                value: valueList[0],
+                value: value,
                 binaryStartPoint: binaryStartPoint,
                 binaryLength: startPoint + offset - binaryStartPoint
             });
