@@ -8,7 +8,7 @@ import mp4Parser from '../utils/mp4Parser';
 type TreeItem = TreeNodeData
 
 const props = defineProps<{
-    binary: Uint8Array,
+    binary: Uint8Array | null,
 }>();
 
 const emits = defineEmits<{
@@ -21,9 +21,13 @@ const state = reactive<{
     treeData: [],
 })
 
-watch(() => props.binary, () => {
+watch(() => props.binary, (binary) => {
+    if (!binary) {
+        state.treeData = [];
+        return;
+    }
     try {
-        const boxData = mp4Parser(props.binary);
+        const boxData = mp4Parser(binary);
         const treeData = boxItem2TreeItem(boxData);
         state.treeData = treeData;
     } catch (e) {
@@ -47,7 +51,7 @@ function boxItem2TreeItem(boxItems: (BoxItem | PairItem)[]): TreeItem[] {
             let value = item.value;
             if (typeof value === 'string' || typeof value === 'number') {
                 const treeItem: TreeItem = {
-                    title: `${item.key}: ${value}`,
+                    title: `${item.key}: ${value} (${item.binary})`,
                     key: `${item.binaryStartPoint}-${item.binaryLength}`,
                 }
                 treeItems.push(treeItem);

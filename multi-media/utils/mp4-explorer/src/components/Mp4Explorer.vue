@@ -13,11 +13,11 @@ const props = defineProps<{
 }>();
 
 const state = reactive<{
-    binary: Uint8Array,
+    binary: Uint8Array | null,
     highlights: HightLight[],
     startPoint: number
 }>({
-    binary: new Uint8Array(200),
+    binary: null,
     highlights: [],
     startPoint: 0
 });
@@ -30,7 +30,7 @@ function loadArrayBuffer(arrayBuffer: ArrayBuffer) {
 watch(() => props.file, (value) => {
     if (!value) {
         state.highlights = [];
-        state.binary = new Uint8Array(200);
+        state.binary = null;
         return;
     }
     value.arrayBuffer().then(arrayBuffer => {
@@ -39,7 +39,6 @@ watch(() => props.file, (value) => {
 })
 
 function onTreeSelect(binaryStartPoint: number, binaryLength: number) {
-    console.log(binaryStartPoint, binaryLength)
     state.highlights = [{
         binaryStartPoint,
         binaryLength,
@@ -50,16 +49,23 @@ function onTreeSelect(binaryStartPoint: number, binaryLength: number) {
 </script>
 
 <template>
-    <div class="mp4-explorer-container">
-        <Mp4InfoReader :binary="state.binary" @select="onTreeSelect" />
-        <BinaryDisplay :binary="state.binary" :start-point="state.startPoint" :highlights="state.highlights" />
+    <div class="mp4-explorer">
+        <Mp4InfoReader class="mp4-explorer__tree" :binary="state.binary" @select="onTreeSelect" />
+        <BinaryDisplay class="mp4-explorer__block" :binary="state.binary" :start-point="state.startPoint" :highlights="state.highlights" />
     </div>
 </template>
 
 <style scoped lang="scss">
-.mp4-explorer-container {
+.mp4-explorer {
     display: flex;
-    flex-direction: row;
     height: 100%;
+    padding: 0 16px;
+
+    &__tree {
+        flex:1;
+        height: 100%;
+        overflow: scroll;
+    }
+    
 }
 </style>

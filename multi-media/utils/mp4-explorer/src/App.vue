@@ -20,11 +20,24 @@ function customRequest(opt: RequestOption) {
   }
 }
 
+function beforRemove() {
+  state.targetFile = undefined;
+  return Promise.resolve;
+}
+
 </script>
 
 <template>
-  <a-upload draggable action="/" :file-list="state.fileList" :limit="1" accept=".mp4" :custom-request="customRequest" />
-  <Mp4Explorer :file="state.targetFile"/>
+  <a-upload class="upload" action="/" :file-list="state.fileList" :limit="1" accept=".mp4" :custom-request="customRequest" :on-before-remove="beforRemove"/>
+  <Mp4Explorer class="explorer" :file="state.targetFile"/>
 </template>
 
-<style scoped></style>
+<style scoped>
+.upload {
+  width: 30%;
+  margin: 16px;
+}
+.explorer {
+  height: calc(100vh - 90px);
+}
+</style>

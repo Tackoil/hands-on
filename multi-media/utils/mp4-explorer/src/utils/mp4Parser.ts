@@ -6,6 +6,7 @@ export type PairItem = {
     value: string | number | PairItem[] | BoxItem[];
     binaryStartPoint: number;
     binaryLength: number;
+    binary: string;
 }
 
 export type BoxItem = {
@@ -23,7 +24,8 @@ export function isBoxItem(item: PairItem | BoxItem | string | number): item is B
 function byte2Number(binary: Uint8Array, startPoint: number, length: number): number {
     let result = 0;
     for (let i = 0; i < length; i++) {
-        result += binary[startPoint + i] << (8 * (length - 1 - i));
+        result *= 0x100;
+        result += binary[startPoint + i];
     }
     return result;
 }
@@ -94,7 +96,8 @@ function structParser(binary: Uint8Array, startPoint: number, length: number | n
                 key: key,
                 value: boxes,
                 binaryStartPoint: binaryStartPoint,
-                binaryLength: binaryLength
+                binaryLength: binaryLength,
+                binary: byte2Binary(binary, binaryStartPoint, binaryLength)
             });
             offset += binaryLength;
             continue;
@@ -130,7 +133,8 @@ function structParser(binary: Uint8Array, startPoint: number, length: number | n
                     key: loopLength.toString(),
                     value: pairs,
                     binaryStartPoint: binaryStartPointInLoop,
-                    binaryLength: binaryLength
+                    binaryLength: binaryLength,
+                    binary: byte2Binary(binary, binaryStartPointInLoop, binaryLength)
                 });
                 valueLength = binaryLength;
             } else {
@@ -139,7 +143,10 @@ function structParser(binary: Uint8Array, startPoint: number, length: number | n
                     if (length === null) {
                         throw new Error(`size is auto but length is null at ${binaryStartPointInLoop}`);
                     }
-                    valueLength = length - binaryStartPointInLoop;
+                    valueLength = length - offset - loopOffset;
+                    if (valueLength <= 0) {
+                        console.warn('size is auto but length is 0')
+                    }
                 } else if (typeof structValue.size === 'string') {
                     const sizeKey = currentPairs.find((item) => item.key === structValue.size);
                     if (!sizeKey) {
@@ -170,7 +177,8 @@ function structParser(binary: Uint8Array, startPoint: number, length: number | n
                     key: loopLength.toString(),
                     value: value,
                     binaryStartPoint: binaryStartPointInLoop,
-                    binaryLength: valueLength
+                    binaryLength: valueLength,
+                    binary: byte2Binary(valueBinary, 0, valueLength)
                 });
             }
             loopOffset += valueLength;
@@ -183,14 +191,16 @@ function structParser(binary: Uint8Array, startPoint: number, length: number | n
                 key: key,
                 value: value,
                 binaryStartPoint: binaryStartPoint,
-                binaryLength: startPoint + offset - binaryStartPoint
+                binaryLength: startPoint + offset - binaryStartPoint,
+                binary: byte2Binary(binary, binaryStartPoint, startPoint + offset - binaryStartPoint)
             });
         } else {
             currentPairs.push({
                 key: key,
                 value: valueList,
                 binaryStartPoint: binaryStartPoint,
-                binaryLength: startPoint + offset - binaryStartPoint
+                binaryLength: startPoint + offset - binaryStartPoint,
+                binary: byte2Binary(binary, binaryStartPoint, startPoint + offset - binaryStartPoint)
             });
         }
     }
