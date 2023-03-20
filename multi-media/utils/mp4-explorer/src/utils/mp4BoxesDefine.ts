@@ -1,10 +1,15 @@
+interface PostProcess<T> {
+  (value: T): T
+}
+
 interface NormalValue {
   _type: 'number' | 'string' | 'binary' | 'language' | 'fixedPoint',
   name: string,
   size: number | 'auto' | string,
-  exSize? : number,
+  exSize?: number,
   loop?: 'inf' | string,
   mask?: number,
+  postProcess?: PostProcess<number | string>,
 }
 
 interface StructValue {
@@ -12,19 +17,86 @@ interface StructValue {
   name: string,
   struct: Value[],
   loop?: 'inf' | string,
-} 
+}
 
 interface ContainerValue {
   _type: 'container',
   name: string,
   typeDict: BoxTypeDict
-} 
+}
 
 export type Value = NormalValue | StructValue | ContainerValue;
 
 export type BoxTypeDict = {
   [key: string]: Value
 }
+
+
+const sample_flags: Value[] = [
+  {
+    _type: 'binary',
+    name: 'reserved',
+    size: 0.5,
+  },
+  {
+    _type: 'number',
+    name: 'is_leading',
+    size: 0.25,
+  },
+  {
+    _type: 'number',
+    name: 'sample_depends_on',
+    size: 0.25,
+  },
+  {
+    _type: 'number',
+    name: 'sample_is_depended_on',
+    size: 0.25,
+  },
+  {
+    _type: 'number',
+    name: 'sample_has_redundancy',
+    size: 0.25,
+  },
+  {
+    _type: 'number',
+    name: 'sample_padding_value',
+    size: 0.375,
+  },
+  {
+    _type: 'number',
+    name: 'sample_is_non_sync_sample',
+    size: 0.125,
+  },
+  {
+    _type: 'number',
+    name: 'sample_degradation_priority',
+    size: 2,
+  }
+]
+
+const sdtp_sample_flags: Value[] = [
+  {
+    _type: 'number',
+    name: 'is_leading',
+    size: 0.25,
+  },
+  {
+    _type: 'number',
+    name: 'sample_depends_on',
+    size: 0.25,
+  },
+  {
+    _type: 'number',
+    name: 'sample_is_depended_on',
+    size: 0.25,
+  },
+  {
+    _type: 'number',
+    name: 'sample_has_redundancy',
+    size: 0.25,
+  },
+]
 
 export const boxTypeDict: BoxTypeDict = {
   ftyp: {
@@ -63,7 +135,7 @@ export const boxTypeDict: BoxTypeDict = {
             size: 1,
           },
           {
-            _type: 'number',
+            _type: 'binary',
             name: 'flags',
             size: 3,
           },
@@ -133,7 +205,7 @@ export const boxTypeDict: BoxTypeDict = {
                 size: 1,
               },
               {
-                _type: 'number',
+                _type: 'binary',
                 name: 'flags',
                 size: 3,
               },
@@ -218,7 +290,7 @@ export const boxTypeDict: BoxTypeDict = {
                     size: 1,
                   },
                   {
-                    _type: 'number',
+                    _type: 'binary',
                     name: 'flags',
                     size: 3,
                   },
@@ -274,7 +346,7 @@ export const boxTypeDict: BoxTypeDict = {
                     size: 1,
                   },
                   {
-                    _type: 'number',
+                    _type: 'binary',
                     name: 'flags',
                     size: 3,
                   },
@@ -323,7 +395,7 @@ export const boxTypeDict: BoxTypeDict = {
                     size: 1,
                   },
                   {
-                    _type: 'number',
+                    _type: 'binary',
                     name: 'flags',
                     size: 3,
                   },
@@ -373,7 +445,7 @@ export const boxTypeDict: BoxTypeDict = {
                         size: 1,
                       },
                       {
-                        _type: 'number',
+                        _type: 'binary',
                         name: 'flags', // default 1
                         size: 3,
                       },
@@ -399,7 +471,7 @@ export const boxTypeDict: BoxTypeDict = {
                         size: 1,
                       },
                       {
-                        _type: 'number',
+                        _type: 'binary',
                         name: 'flags', // default 0
                         size: 3,
                       },
@@ -429,7 +501,7 @@ export const boxTypeDict: BoxTypeDict = {
                             size: 1,
                           },
                           {
-                            _type: 'number',
+                            _type: 'binary',
                             name: 'flags',
                             size: 3,
                           },
@@ -452,7 +524,7 @@ export const boxTypeDict: BoxTypeDict = {
                                     size: 1,
                                   },
                                   {
-                                    _type: 'number',
+                                    _type: 'binary',
                                     name: 'flags',
                                     size: 3,
                                   },
@@ -473,7 +545,7 @@ export const boxTypeDict: BoxTypeDict = {
                                     size: 1,
                                   },
                                   {
-                                    _type: 'number',
+                                    _type: 'binary',
                                     name: 'flags',
                                     size: 3,
                                   },
@@ -494,7 +566,7 @@ export const boxTypeDict: BoxTypeDict = {
                                     size: 1,
                                   },
                                   {
-                                    _type: 'number',
+                                    _type: 'binary',
                                     name: 'flags',
                                     size: 3,
                                   },
@@ -525,7 +597,7 @@ export const boxTypeDict: BoxTypeDict = {
                             size: 1,
                           },
                           {
-                            _type: 'number',
+                            _type: 'binary',
                             name: 'flags',
                             size: 3,
                           },
@@ -731,7 +803,7 @@ export const boxTypeDict: BoxTypeDict = {
                                           },
                                         ],
                                       },
-                                        
+
                                     },
                                   },
                                 ],
@@ -804,7 +876,7 @@ export const boxTypeDict: BoxTypeDict = {
                                             size: 1,
                                           },
                                           {
-                                            _type: 'number',
+                                            _type: 'binary',
                                             name: 'flags',
                                             size: 3,
                                           },
@@ -854,7 +926,7 @@ export const boxTypeDict: BoxTypeDict = {
                             size: 1,
                           },
                           {
-                            _type: 'number',
+                            _type: 'binary',
                             name: 'flags',
                             size: 3,
                           },
@@ -894,7 +966,7 @@ export const boxTypeDict: BoxTypeDict = {
                             size: 1,
                           },
                           {
-                            _type: 'number',
+                            _type: 'binary',
                             name: 'flags',
                             size: 3,
                           },
@@ -932,7 +1004,7 @@ export const boxTypeDict: BoxTypeDict = {
                             size: 1,
                           },
                           {
-                            _type: 'number',
+                            _type: 'binary',
                             name: 'flags',
                             size: 3,
                           },
@@ -959,35 +1031,14 @@ export const boxTypeDict: BoxTypeDict = {
                             size: 1,
                           },
                           {
-                            _type: 'number',
+                            _type: 'binary',
                             name: 'flags',
                             size: 3,
                           },
                           {
                             _type: 'struct',
                             name: 'sample_dependency_table',
-                            struct: [
-                              {
-                                _type: 'number',
-                                name: 'is_leading',
-                                size: 2,
-                              },
-                              {
-                                _type: 'number',
-                                name: 'sample_depends_on',
-                                size: 2,
-                              },
-                              {
-                                _type: 'number',
-                                name: 'sample_is_depended_on',
-                                size: 2,
-                              },
-                              {
-                                _type: 'number',
-                                name: 'sample_has_redundancy',
-                                size: 2,
-                              },
-                            ],
+                            struct: sdtp_sample_flags,
                             loop: 'inf',
                           },
                         ],
@@ -1002,7 +1053,7 @@ export const boxTypeDict: BoxTypeDict = {
                             size: 1,
                           },
                           {
-                            _type: 'number',
+                            _type: 'binary',
                             name: 'flags',
                             size: 3,
                           },
@@ -1045,7 +1096,7 @@ export const boxTypeDict: BoxTypeDict = {
                             size: 1,
                           },
                           {
-                            _type: 'number',
+                            _type: 'binary',
                             name: 'flags',
                             size: 3,
                           },
@@ -1077,7 +1128,7 @@ export const boxTypeDict: BoxTypeDict = {
                             size: 1,
                           },
                           {
-                            _type: 'number',
+                            _type: 'binary',
                             name: 'flags',
                             size: 3,
                           },
@@ -1104,7 +1155,7 @@ export const boxTypeDict: BoxTypeDict = {
                             size: 1,
                           },
                           {
-                            _type: 'number',
+                            _type: 'binary',
                             name: 'flags',
                             size: 3,
                           },
@@ -1141,7 +1192,7 @@ export const boxTypeDict: BoxTypeDict = {
                             size: 1,
                           },
                           {
-                            _type: 'number',
+                            _type: 'binary',
                             name: 'flags',
                             size: 3,
                           },
@@ -1176,6 +1227,22 @@ export const boxTypeDict: BoxTypeDict = {
 
                       }
                     }
+                  },
+                  nmhd: {
+                    _type: 'struct',
+                    name: 'nmhd',
+                    struct: [
+                      {
+                        _type: 'number',
+                        name: 'version',
+                        size: 1,
+                      },
+                      {
+                        _type: 'binary',
+                        name: 'flags',
+                        size: 3,
+                      },
+                    ],
                   }
                 },
               }
@@ -1183,6 +1250,77 @@ export const boxTypeDict: BoxTypeDict = {
           }
         }
       },
+      mvex: {
+        _type: 'container',
+        name: 'mvex',
+        typeDict: {
+          mehd: {
+            _type: 'struct',
+            name: 'mehd',
+            struct: [
+              {
+                _type: 'number',
+                name: 'version',
+                size: 1,
+              },
+              {
+                _type: 'binary',
+                name: 'flags',
+                size: 3,
+              },
+              {
+                _type: 'number',
+                name: 'fragment_duration',
+                size: 4,
+                exSize: 8,
+              },
+            ],
+          },
+          trex: {
+            _type: 'struct',
+            name: 'trex',
+            struct: [
+              {
+                _type: 'number',
+                name: 'version',
+                size: 1,
+              },
+              {
+                _type: 'binary',
+                name: 'flags',
+                size: 3,
+              },
+              {
+                _type: 'number',
+                name: 'track_ID',
+                size: 4,
+              },
+              {
+                _type: 'number',
+                name: 'default_sample_description_index',
+                size: 4,
+              },
+              {
+                _type: 'number',
+                name: 'default_sample_duration',
+                size: 4,
+              },
+              {
+                _type: 'number',
+                name: 'default_sample_size',
+                size: 4,
+              },
+              {
+                _type: 'struct',
+                name: 'default_sample_flags',
+                struct: sample_flags,
+              },
+            ],
+          },
+
+        }
+
+      }
     }
   },
   free: {
@@ -1190,7 +1328,309 @@ export const boxTypeDict: BoxTypeDict = {
     name: 'free',
     struct: [
     ]
+  },
+  moof: {
+    _type: 'container',
+    name: 'moof',
+    typeDict: {
+      mfhd: {
+        _type: 'struct',
+        name: 'mfhd',
+        struct: [
+          {
+            _type: 'number',
+            name: 'version',
+            size: 1,
+          },
+          {
+            _type: 'binary',
+            name: 'flags',
+            size: 3,
+          },
+          {
+            _type: 'number',
+            name: 'sequence_number',
+            size: 4,
+          },
+        ],
+      },
+      traf: {
+        _type: 'container',
+        name: 'traf',
+        typeDict: {
+          tfhd: {
+            _type: 'struct',
+            name: 'tfhd',
+            struct: [
+              {
+                _type: 'number',
+                name: 'version',
+                size: 1,
+              },
+              {
+                _type: 'binary',
+                name: 'flags',
+                size: 3,
+              },
+              {
+                _type: 'number',
+                name: 'track_ID',
+                size: 4,
+              },
+              {
+                _type: 'number',
+                name: 'base_data_offset',
+                size: 8,
+                // TODO: fix the condition
+              },
+              {
+                _type: 'number',
+                name: 'sample_description_index',
+                size: 4,
+              },
+              {
+                _type: 'number',
+                name: 'default_sample_duration',
+                size: 4,
+              },
+              {
+                _type: 'number',
+                name: 'default_sample_size',
+                size: 4,
+              },
+              {
+                _type: 'struct',
+                name: 'default_sample_flags',
+                struct: sample_flags,
+              },
+            ],
+          },
+          tfdt: {
+            _type: 'struct',
+            name: 'tfdt',
+            struct: [
+              {
+                _type: 'number',
+                name: 'version',
+                size: 1,
+              },
+              {
+                _type: 'binary',
+                name: 'flags',
+                size: 3,
+              },
+              {
+                _type: 'number',
+                name: 'base_media_decode_time',
+                size: 4,
+                exSize: 8,
+              },
+            ],
+          },
+          trun: {
+            _type: 'struct',
+            name: 'trun',
+            struct: [
+              {
+
+                _type: 'number',
+                name: 'version',
+                size: 1,
+              },
+              {
+                _type: 'binary',
+                name: 'flags',
+                size: 3,
+              },
+              {
+                _type: 'number',
+                name: 'sample_count',
+                size: 4,
+              },
+              {
+                _type: 'number',
+                name: 'data_offset',
+                size: 4,
+              },
+              {
+                _type: 'struct',
+                name: 'first_sample_flags',
+                struct: sample_flags
+              },
+              {
+                _type: 'struct',
+                name: 'sample',
+                struct: [
+                  {
+                    _type: 'number',
+                    name: 'sample_duration',
+                    size: 4,
+                  },
+                  {
+                    _type: 'number',
+                    name: 'sample_size',
+                    size: 4,
+                  },
+                  {
+                    _type: 'struct',
+                    name: 'sample_flags',
+                    struct: sample_flags
+                  },
+                  {
+                    _type: 'number',
+                    name: 'sample_composition_time_offset',
+                    size: 4,
+                  },
+                ],
+                loop: 'sample_count',
+              },
+            ],
+          },
+          sdtp: {
+            _type: 'struct',
+            name: 'sdtp',
+            struct: [
+              {
+                _type: 'number',
+                name: 'version',
+                size: 1,
+              },
+              {
+                _type: 'binary',
+                name: 'flags',
+                size: 3,
+              },
+              {
+                _type: 'number',
+                name: 'sample_count',
+                size: 4,
+              },
+              {
+                _type: 'struct',
+                name: 'sample',
+                struct: sdtp_sample_flags,
+                loop: 'sample_count',
+              },
+            ],
+          },
+        }
+      }
+    }
+  },
+  mfra: {
+    _type: 'container',
+    name: 'mfra',
+    typeDict: {
+      tfra: {
+        _type: 'struct',
+        name: 'tfra',
+        struct: [
+          {
+            _type: 'number',
+            name: 'version',
+            size: 1,
+          },
+          {
+            _type: 'binary',
+            name: 'flags',
+            size: 3,
+          },
+          {
+            _type: 'number',
+            name: 'track_ID',
+            size: 4,
+          },
+          {
+            _type: 'binary',
+            name: 'reserved',
+            size: 3.25,
+          },
+          {
+            _type: 'number',
+            name: 'length_size_of_traf_num',
+            size: 0.25,
+            postProcess: (value) => {
+              return value as number + 1;
+            }
+          },
+          {
+            _type: 'number',
+            name: 'length_size_of_trun_num',
+            size: 0.25,
+            postProcess: (value) => {
+              return value as number + 1;
+            }
+          },
+          {
+            _type: 'number',
+            name: 'length_size_of_sample_num',
+            size: 0.25,
+            postProcess: (value) => {
+              return value as number + 1;
+            }
+          },
+          {
+            _type: 'number',
+            name: 'number_of_entry',
+            size: 4,
+          },
+          {
+            _type: 'struct',
+            name: 'entry',
+            struct: [
+              {
+                _type: 'number',
+                name: 'time',
+                size: 4,
+                exSize: 8,
+              },
+              {
+                _type: 'number',
+                name: 'moof_offset',
+                size: 4,
+                exSize: 8,
+              },
+              {
+                _type: 'number',
+                name: 'traf_number',
+                size: 'length_size_of_traf_num',
+              },
+              {
+                _type: 'number',
+                name: 'trun_number',
+                size: 'length_size_of_trun_num',
+              },
+              {
+                _type: 'number',
+                name: 'sample_number',
+                size: 'length_size_of_sample_num',
+              },
+            ],
+          }
+        ],
+      },
+      mfro: {
+        _type: 'struct',
+        name: 'mfro',
+        struct: [
+          {
+            _type: 'number',
+            name: 'version',
+            size: 1,
+          },
+          {
+            _type: 'binary',
+            name: 'flags',
+            size: 3,
+          },
+          {
+            _type: 'number',
+            name: 'size',
+            size: 4,
+          },
+        ],
+      },
+    }
   }
 };
-
 

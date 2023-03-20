@@ -76,6 +76,18 @@ function getValue(_type: 'number' | 'string' | 'binary' | 'language' | 'fixedPoi
     return value;
 }
 
+function findInPairs(key: string, currentPairs: PairItem[], parentPairs: PairItem[] = []): string | number | PairItem[] | BoxItem[] | undefined {
+    let pair = currentPairs.find(item => item.key === key);
+    if (!pair) {
+        pair = parentPairs.find(item => item.key === key);
+    }
+    if (!pair) {
+        return undefined;
+    } else {
+        return pair.value;
+    }
+}
+
 function structParser(binary: Uint8Array, startPoint: number, length: number | null, parentPairs: PairItem[], struct: Value[]): {
     pairs: PairItem[],
     binaryLength: number
@@ -108,14 +120,11 @@ function structParser(binary: Uint8Array, startPoint: number, length: number | n
             if (structValue.loop === 'inf') {
                 loopCount = Infinity;
             } else {
-                const loopKey = currentPairs.find((item) => item.key === structValue.loop);
-                if (!loopKey) {
+                const loopValue = findInPairs(structValue.loop, currentPairs);
+                if (typeof loopValue !== 'number') {
                     throw new Error(`loop key not found: ${structValue.loop} at ${startPoint}`);
                 } 
-                if (typeof loopKey.value !== 'number') {
-                    throw new Error(`loop key is not number: ${structValue.loop} at ${startPoint}`);
-                }
-                loopCount = loopKey.value;
+                loopCount = loopValue;
             }
         }
         const valueList: PairItem[] = [];
@@ -148,37 +157,67 @@ function structParser(binary: Uint8Array, startPoint: number, length: number | n
                         console.warn('size is auto but length is 0')
                     }
                 } else if (typeof structValue.size === 'string') {
-                    const sizeKey = currentPairs.find((item) => item.key === structValue.size);
-                    if (!sizeKey) {
+                    const sizeValue = findInPairs(structValue.size, currentPairs, parentPairs);
+                    if (typeof sizeValue !== 'number') {
                         throw new Error(`size key not found: ${structValue.size} at ${binaryStartPointInLoop}`);
                     } 
-                    if (typeof sizeKey.value !== 'number') {
-                        throw new Error(`size key is not number: ${structValue.size} at ${binaryStartPointInLoop}`);
-                    }
-                    valueLength = sizeKey.value;
+                    valueLength = sizeValue;
                 } else {
                     valueLength = structValue.size;
                 }
                 if (structValue.exSize) {
-                    let versionKey = currentPairs.find((item) => item.key === 'version');
-                    if (!versionKey) {
-                        versionKey = parentPairs.find((item) => item.key === 'version');
+                    let versionValue = findInPairs('version', currentPairs, parentPairs);
+                    if (typeof versionValue !== 'number') {
+                        throw new Error(`version key not found at ${binaryStartPointInLoop}}`);
                     }
-                    if (!versionKey || typeof versionKey.value !== 'number') {
-                        throw new Error(`version key ${versionKey} not found at ${binaryStartPointInLoop}}`);
-                    }
-                    if (versionKey.value === 1) {
+                    if (versionValue === 1) {
                         valueLength = structValue.exSize;
                     }
                 }
-                const valueBinary = binary.slice(binaryStartPointInLoop, binaryStartPointInLoop + valueLength);
-                const value = getValue(_valueType, valueBinary, structValue.mask);
+                const valueBinaryStartPoint = Math.floor(binaryStartPointInLoop);
+                const valueBinaryEndPoint = Math.ceil(binaryStartPointInLoop + valueLength);
+                let valueBinary = binary.slice(valueBinaryStartPoint, valueBinaryEndPoint);
+                if (valueBinaryStartPoint !== binaryStartPointInLoop || valueBinaryEndPoint !== (binaryStartPointInLoop + valueLength)) {
+                    // not aligned
+                    const prefixBit = (binaryStartPointInLoop - valueBinaryStartPoint) * 8;
+                    const suffixBit = (valueBinaryEndPoint - (binaryStartPointInLoop + valueLength)) * 8;
+                    const cleanedBitArray: boolean[] = [];
+                    for (let i = 0; i < valueBinary.length; i++) {
+                        let byte = valueBinary[i];
+                        let start = 0;
+                        let end = 8;
+                        if (i === 0) {
+                            start = prefixBit;
+                        }
+                        if (i === valueBinary.length - 1) {
+                            end = 8 - suffixBit;
+                        }
+                        for (let j = start; j < end; j++) {
+                            cleanedBitArray.push((byte & (1 << (7- j))) !== 0);
+                        }
+                    }
+                    if (cleanedBitArray.length % 8 !== 0) {
+                        cleanedBitArray.unshift(...new Array(8 - cleanedBitArray.length % 8).fill(false));
+                    }
+                    valueBinary = new Uint8Array(cleanedBitArray.length / 8);
+                    for (let i = 0; i < valueBinary.length; i++) {
+                        for (let j = 0; j < 8; j++) {
+                            if (cleanedBitArray[i * 8 + j]) {
+                                valueBinary[i] |= (1 << (7-j));
+                            }
+                        }
+                    }
+                }
+                let value = getValue(_valueType, valueBinary, structValue.mask);
+                if (structValue.postProcess) {
+                    value = structValue.postProcess(value);
+                }
                 valueList.push({
                     key: loopLength.toString(),
-                    value: value,
+                    value,
                     binaryStartPoint: binaryStartPointInLoop,
                     binaryLength: valueLength,
-                    binary: byte2Binary(valueBinary, 0, valueLength)
+                    binary: byte2Binary(valueBinary, 0, valueBinary.length)
                 });
             }
             loopOffset += valueLength;
@@ -192,7 +231,7 @@ function structParser(binary: Uint8Array, startPoint: number, length: number | n
                 value: value,
                 binaryStartPoint: binaryStartPoint,
                 binaryLength: startPoint + offset - binaryStartPoint,
-                binary: byte2Binary(binary, binaryStartPoint, startPoint + offset - binaryStartPoint)
+                binary: valueList[0].binary
             });
         } else {
             currentPairs.push({
